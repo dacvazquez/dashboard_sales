@@ -38,7 +38,7 @@ precio_venta = col2.number_input("Precio de venta (opcional)", min_value=0.0, va
 fecha_venta = col2.date_input("Fecha de venta (opcional)", value=None)
 
 # ✔ Ganancia dinámica
-ganancia = precio_venta - precio_compra if precio_venta > 0 else 0
+ganancia = precio_venta - precio_compra
 col2.number_input("Ganancia", value=ganancia)
 
 # Botón de añadir
@@ -49,7 +49,7 @@ if st.button("Añadir"):
         "precio_compra": precio_compra,
         "precio_venta": precio_venta if precio_venta > 0 else "",
         "fecha_venta": str(fecha_venta) if precio_venta > 0 else "",
-        "ganancia": ganancia if precio_venta > 0 else 0
+        "ganancia": ganancia
     }
 
     df.loc[len(df)] = new_row
@@ -142,7 +142,7 @@ if len(df) > 0:
         x="item",
         y=["precio_compra", "precio_venta"],
         title="Precio Compra vs Venta",
-        color_discrete_map={"precio_compra": "green", "precio_venta": "red"}
+        color_discrete_map={"precio_compra": "red", "precio_venta": "green"}
     )
     
     colg2.plotly_chart(fig_cv, use_container_width=True)
