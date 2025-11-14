@@ -1,5 +1,4 @@
 streamlit 
 plotly
-python>=3.11
 pandas
 numpy

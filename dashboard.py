@@ -25,8 +25,6 @@ st.title("Dashboard de Compras y Ventas")
 # ------------------------------------
 st.subheader("Añadir nuevo ítem")
 
-st.subheader("Añadir nuevo ítem")
-
 col1, col2 = st.columns(2)
 
 # Inputs dinámicos
