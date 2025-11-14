@@ -25,21 +25,24 @@ st.title("Dashboard de Compras y Ventas")
 # ------------------------------------
 st.subheader("Añadir nuevo ítem")
 
-with st.form("form", clear_on_submit=True):
-    col1, col2, col3 = st.columns(3)
-    
-    item = col1.text_input("Item")
-    precio_compra = col1.number_input("Precio de compra", min_value=0.0)
-    fecha_compra = col1.date_input("Fecha de compra")
-    
-    precio_venta = col2.number_input("Precio de venta (opcional)", min_value=0.0, value=0.0)
-    fecha_venta = col2.date_input("Fecha de venta (opcional)", value=None)
-    
-    submitted = st.form_submit_button("Añadir")
+st.subheader("Añadir nuevo ítem")
 
-if submitted:
-    ganancia = precio_venta - precio_compra if precio_venta > 0 else 0
-    
+col1, col2 = st.columns(2)
+
+# Inputs dinámicos
+item = col1.text_input("Item")
+precio_compra = col1.number_input("Precio de compra", min_value=0.0, value=0.0)
+fecha_compra = col1.date_input("Fecha de compra")
+
+precio_venta = col2.number_input("Precio de venta (opcional)", min_value=0.0, value=0.0)
+fecha_venta = col2.date_input("Fecha de venta (opcional)", value=None)
+
+# ✔ Ganancia dinámica
+ganancia = precio_venta - precio_compra if precio_venta > 0 else 0
+col2.number_input("Ganancia", value=ganancia)
+
+# Botón de añadir
+if st.button("Añadir"):
     new_row = {
         "item": item,
         "fecha_compra": str(fecha_compra),
@@ -48,8 +51,8 @@ if submitted:
         "fecha_venta": str(fecha_venta) if precio_venta > 0 else "",
         "ganancia": ganancia if precio_venta > 0 else 0
     }
-    
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+    df.loc[len(df)] = new_row
     df.to_csv(DATA_FILE, index=False)
     st.success("Ítem añadido correctamente")
 
