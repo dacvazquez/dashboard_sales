@@ -5,18 +5,33 @@ import os
 
 st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide")
 
-DATA_FILE = "data.csv"
+# -----------------------------
+# Cargar archivo desde sesión o subida
+# -----------------------------
+st.sidebar.header("Datos")
 
-# ------------------------------------
-# Cargar o crear dataset inicial
-# ------------------------------------
-if os.path.exists(DATA_FILE):
-    df = pd.read_csv(DATA_FILE)
-else:
-    df = pd.DataFrame(columns=[
+uploaded_file = st.sidebar.file_uploader("Subir archivo data.csv", type=["csv"])
+
+# si no existe df en session_state lo creamos vacío
+if "df" not in st.session_state:
+    st.session_state["df"] = pd.DataFrame(columns=[
         "item", "fecha_compra", "precio_compra", "fecha_venta", "precio_venta", "ganancia"
     ])
-    df.to_csv(DATA_FILE, index=False)
+
+# si el usuario sube archivo, lo cargamos
+if uploaded_file is not None:
+    st.session_state["df"] = pd.read_csv(uploaded_file)
+
+df = st.session_state["df"]
+
+st.sidebar.download_button(
+    "Descargar data.csv",
+    data=st.session_state["df"].to_csv(index=False),
+    file_name="data.csv",
+    mime="text/csv",
+    help="Se creará un archivo data.csv en tu almacenamiento"
+)
+
 
 st.title("Dashboard de Compras y Ventas")
 
@@ -51,7 +66,7 @@ if st.button("Añadir"):
     }
 
     df.loc[len(df)] = new_row
-    df.to_csv(DATA_FILE, index=False)
+    st.session_state["df"] = df
     st.success("Ítem añadido correctamente")
 
 # ------------------------------------
@@ -66,17 +81,19 @@ df["fecha_venta"] = pd.to_datetime(df["fecha_venta"], errors="coerce")
 # Botón ordenar
 if st.button("Ordenar tabla por fecha de compra"):
     df = df.sort_values("fecha_compra", ascending=True)
-    df.to_csv(DATA_FILE, index=False)
+    st.session_state["df"] = df
     st.success("Tabla ordenada por fecha de compra")
 
 # Editor
 edited_df = st.data_editor(df, num_rows="dynamic")
 
-if st.button("Guardar tabla"):
-    edited_df.to_csv(DATA_FILE, index=False)
-    st.success("Datos guardados")
-
-
+st.download_button(
+    "Descargar .csv",
+    data=st.session_state["df"].to_csv(index=False),
+    file_name="data.csv",
+    mime="text/csv",
+    help="Se creará un archivo data.csv en tu almacenamiento"
+)
 
 # ------------------------------------
 # Totales para gráfico resumen
