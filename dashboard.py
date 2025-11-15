@@ -10,7 +10,7 @@ st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide")
 # -----------------------------
 st.sidebar.header("Datos")
 
-uploaded_file = st.sidebar.file_uploader("Subir archivo data.csv", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Subir archivo data.csv", type=["csv"], help="Recuerda pulsar en la X luego de añadir el archivo para que la table sea editable")
 
 # si no existe df en session_state lo creamos vacío
 if "df" not in st.session_state:
@@ -36,11 +36,11 @@ st.sidebar.download_button(
 st.title("Dashboard de Compras y Ventas")
 
 # ------------------------------------
-# Formulario de nuevo ítem
+# Formulario para Añadir nuevo ítem
 # ------------------------------------
 st.subheader("Añadir nuevo ítem")
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns(2, border=True)
 
 # Inputs dinámicos
 item = col1.text_input("Item")
@@ -65,8 +65,10 @@ if st.button("Añadir"):
         "ganancia": ganancia
     }
 
-    df.loc[len(df)] = new_row
+    df.loc[len(df)] = new_row   
+    df = df.reset_index(drop=True)
     st.session_state["df"] = df
+
     st.success("Ítem añadido correctamente")
 
 # ------------------------------------
@@ -96,7 +98,7 @@ st.download_button(
 )
 
 # ------------------------------------
-# Totales para gráfico resumen
+# Totales estadísticos
 # ------------------------------------
 total_gastado = df["precio_compra"].sum()
 total_vendido = df["precio_venta"].replace("", 0).astype(float).sum()
@@ -109,57 +111,100 @@ total_beneficio = df["ganancia"].astype(float).sum()
 st.subheader("Resumen general")
 
 resumen_df = pd.DataFrame({
-    "Categoria": ["Gastado", "Ingresos por ventas", "Beneficio total"],
-    "Cantidad": [total_gastado, total_vendido, total_beneficio]
+    "Categoría": ["Gastado", "Ingresos por ventas", "Beneficio total"],
+    "Cantidad(CUP)": [total_gastado, total_vendido, total_beneficio]
 })
 
-fig_resumen = px.bar(
-    resumen_df,
-    x="Categoria",
-    y="Cantidad",
-    text="Cantidad"
-)
+if len(df) > 0:
 
-fig_resumen.update_traces(marker_color=["#e74c3c", "#3498db", "#2ecc71"])
-fig_resumen.update_layout(height=450)
+    with st.container(border=True):
+        fig_resumen = px.bar(
+            resumen_df,
+            x="Categoría",
+            y="Cantidad(CUP)",
+            text="Cantidad(CUP)"
+        )
 
-st.plotly_chart(fig_resumen, use_container_width=True)
+        fig_resumen.update_traces(marker_color=["#e74c3c", "#3498db", "#2ecc71"])
+        fig_resumen.update_layout(height=450)
+
+        st.plotly_chart(fig_resumen, use_container_width=True)
 
 
-# ------------------------------------
-# Gráficos individuales
-# ------------------------------------
-st.subheader("Gráficos por Item")
+    # ------------------------------------
+    # Gráficos individuales
+    # ------------------------------------
+    st.subheader("Gráficos por Item")
 
-colg1, colg2 = st.columns(2)
+    colg1, colg2 = st.columns(2, border=True)
 
 # Gráfico de ganancias con colores (verde y rojo)
 if len(df) > 0:
-    df["ganancia_color"] = df["ganancia"].astype(float).apply(
+    # Crear un DF temporal para no alterar el original
+    df_copy=df.copy()
+    df_copy["ganancia_color"] = df_copy["ganancia"].astype(float).apply(
         lambda x: "green" if x > 0 else "red"
     )
 
     fig_ganancia = px.bar(
-        df,
+        df_copy,
         x="item",
         y="ganancia",
         color="ganancia_color",
         color_discrete_map={"green": "green", "red": "red"},
         title="Ganancia / Pérdida por Item",
-        category_orders={"item": df["item"].tolist()} # para que mantengan el orden de la tabla
+        category_orders={"item": df_copy["item"].tolist()} # para que mantengan el orden de la tabla
     )
     
     colg1.plotly_chart(fig_ganancia, use_container_width=True)
 
-    # Compra vs venta
-    fig_cv = px.line(
-        df,
-        x="item",
-        y=["precio_compra", "precio_venta"],
-        title="Precio Compra vs Venta",
-        color_discrete_map={"precio_compra": "red", "precio_venta": "green"}
+    # Compra vs venta - convertir a formato long-form
+    # Preparar datos: asegurar que ambas columnas sean numéricas
+    df_cv = df.copy()
+    df_cv["precio_compra"] = pd.to_numeric(df_cv["precio_compra"], errors="coerce")
+    df_cv["precio_venta"] = pd.to_numeric(df_cv["precio_venta"].replace("", 0), errors="coerce")
+    
+    # Convertir a formato long-form para Plotly
+    df_melted = pd.melt(
+        df_cv,
+        id_vars=["item"],
+        value_vars=["precio_compra", "precio_venta"],
+        var_name="Tipo",
+        value_name="Precio"
     )
     
+    # Renombrar para mejor visualización
+    df_melted["Tipo"] = df_melted["Tipo"].replace({
+        "precio_compra": "Precio Compra",
+        "precio_venta": "Precio Venta"
+    })
+    
+    fig_cv = px.line(
+        df_melted,
+        x="item",
+        y="Precio",
+        color="Tipo",
+        title="Precio Compra vs Venta",
+        color_discrete_map={"Precio Compra": "red", "Precio Venta": "green"}
+    )
+    fig_cv.update_traces(line=dict(width=3))
+
+    fig_cv.update_traces(mode="lines+markers") #puntos visibles
+
+    fig_cv.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    ) # tono de fondo limpio
+
+    fig_cv.update_traces(hovertemplate="<b>%{x}</b><br>%{y} CUP<br>%{fullData.name}") # hover personalizado
+
+    fig_cv.update_layout(
+    xaxis_title="Item",
+    yaxis_title="Precio (CUP)",
+    font=dict(size=14)
+    ) # mayor legibilidad
+
+
     colg2.plotly_chart(fig_cv, use_container_width=True)
 
 else:
