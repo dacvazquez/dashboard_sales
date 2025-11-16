@@ -89,13 +89,30 @@ if st.button("Ordenar tabla por fecha de compra"):
 # Editor
 edited_df = st.data_editor(df, num_rows="dynamic")
 
-st.download_button(
-    "Descargar .csv",
-    data=st.session_state["df"].to_csv(index=False),
-    file_name="data.csv",
-    mime="text/csv",
-    help="Se creará un archivo data.csv en tu almacenamiento"
-)
+# -----------------
+# Vaciar la tabla
+# ------------------
+
+b1,b2=st.columns(2, border=True)
+with b1:
+    st.download_button(
+        "Descargar .csv",
+        data=st.session_state["df"].to_csv(index=False),
+        file_name="data.csv",
+        use_container_width=True,
+        mime="text/csv",
+        help="Se creará un archivo data.csv en tu almacenamiento"
+    )
+with b2:
+    if st.button(
+        "Vaciar Tabla",
+        use_container_width=True,
+        help="Recuerda quitar el archivo subido para que surtan los cambios"
+    ):
+        st.session_state["df"] = st.session_state["df"].iloc[0:0].copy()
+        st.success("Tabla vaciada correctamente")
+        st.rerun()
+
 
 # ------------------------------------
 # Totales estadísticos
@@ -195,8 +212,6 @@ if len(df) > 0:
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="rgba(0,0,0,0)",
     ) # tono de fondo limpio
-
-    fig_cv.update_traces(hovertemplate="<b>%{x}</b><br>%{y} CUP<br>%{fullData.name}") # hover personalizado
 
     fig_cv.update_layout(
     xaxis_title="Item",
