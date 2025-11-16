@@ -39,7 +39,7 @@ Permite llevar un registro detallado de transacciones, calcular ganancias/pérdi
 * Incluye un launcher local:
 
   **`run_dashboard.command`** (macOS)
-  que abre la app con doble clic usando el entorno virtual.
+  que abre la app con doble clic usando el entorno virtual. (Cambia el path en el archivo para seleccionar el tuyo propio)
 
 ---
 

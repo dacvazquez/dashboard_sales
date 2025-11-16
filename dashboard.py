@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 
-st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide")
+st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide", page_icon="icon.png")
 
 # -----------------------------
 # Cargar archivo desde sesión o subida
