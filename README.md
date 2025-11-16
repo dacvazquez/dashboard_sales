@@ -1,96 +1,202 @@
+
+---
+
 # Dashboard de Compras y Ventas
 
-Un dashboard interactivo desarrollado con Streamlit para gestionar y visualizar tus compras y ventas de productos. Permite llevar un registro detallado de tus transacciones, calcular ganancias/pérdidas y visualizar los datos mediante gráficos interactivos.
+Un dashboard interactivo desarrollado con **Streamlit** para gestionar y visualizar compras y ventas de productos.
+Permite llevar un registro detallado de transacciones, calcular ganancias/pérdidas y generar gráficos interactivos en tiempo real.
+
+---
 
 ## Características
 
-- **Gestión de ítems**: Añade nuevos productos con información de compra y venta
-- **Tabla editable**: Modifica los datos directamente desde la interfaz
-- **Cálculo automático**: Calcula automáticamente las ganancias/pérdidas por ítem
-- **Visualizaciones interactivas**:
-  - Gráfico de resumen general (Gastado, Ingresos, Beneficio)
-  - Gráfico de ganancias/pérdidas por ítem (con colores verde/rojo)
-  - Comparación de precios de compra vs venta
-- **Persistencia de datos**: Los datos se guardan en un archivo CSV local
-- **Ordenamiento**: Ordena la tabla por fecha de compra
+### ✔ Gestión de ítems
+
+* Añadir nuevos productos con fecha y precio de compra/venta.
+* Cálculo automático de ganancia/pérdida.
+
+### ✔ Tabla editable
+
+* Edita directamente en la interfaz.
+* Cambios reflejados al instante.
+
+### ✔ Visualizaciones
+
+* **Resumen General** (Gastado, Ingresos y Beneficio total).
+* **Ganancia/Pérdida por ítem** (colores verde/rojo).
+* **Precio Compra vs Precio Venta** con líneas comparativas.
+
+### ✔ Persistencia de datos
+
+* Usa un archivo `data.csv` editable, exportable y recargable.
+
+### ✔ Ordenamiento
+
+* Orden por fecha de compra con un clic.
+
+### ✔ Ejecución local rápida
+
+* Incluye un launcher local:
+
+  **`run_dashboard.command`** (macOS)
+  que abre la app con doble clic usando el entorno virtual.
+
+---
 
 ## Tecnologías Utilizadas
 
-- **Streamlit**: Framework para crear aplicaciones web interactivas
-- **Pandas**: Manipulación y análisis de datos
-- **Plotly**: Gráficos interactivos
-- **NumPy**: Operaciones numéricas
+* **Streamlit** – Interfaz interactiva
+* **Pandas** – Manipulación de datos
+* **Plotly** – Gráficos dinámicos
+* **NumPy** – Cálculos adicionales
+
+---
 
 ## Requisitos
 
-- Python >= 3.11
-- Las dependencias se encuentran en `requirements.txt`
+* **Python 3.11 o superior**
+* Dependencias listadas en `requirements.txt`
+
+Si usas el archivo **run_dashboard.command**, el entorno virtual se encarga del resto.
+
+---
 
 ## Instalación
 
-1. Clona el repositorio:
+### 1. Clonar el repositorio
+
 ```bash
 git clone https://github.com/tu-usuario/dashboard_sales.git
 cd dashboard_sales
 ```
 
-2. Crea un entorno virtual (recomendado):
+---
+
+### 2. Crear un entorno virtual (recomendado)
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # En Windows: .venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate    # En Windows: venv\Scripts\activate
 ```
 
-3. Instala las dependencias:
+---
+
+### 3. Instalar dependencias
+
 ```bash
 pip install -r requirements.txt
 ```
 
-## Cómo usar?
+---
 
-1. Ejecuta la aplicación:
-```bash
-streamlit run dashboard.py
+## Ejecución
+
+### ✔ Opción A: Usar el launcher local (macOS) — Recomendado
+
+Haz doble clic en:
+
+```
+run_dashboard.command
 ```
 
-2. Abre tu navegador en la URL que aparece en la terminal (generalmente `http://localhost:8501`)
+Este archivo:
 
-3. **Añadir un nuevo ítem**:
-   - Completa el formulario con el nombre del ítem, precio de compra y fecha de compra
-   - Opcionalmente, añade el precio y fecha de venta si ya lo has vendido
-   - Haz clic en "Añadir"
+* activa automáticamente el entorno virtual,
+* ejecuta Streamlit,
+* y abre la app en tu navegador.
 
-4. **Editar datos**:
-   - Modifica los datos directamente en la tabla
-   - Haz clic en "Guardar tabla" para persistir los cambios
+---
 
-5. **Visualizar gráficos**:
-   - Los gráficos se actualizan automáticamente según los datos ingresados
+### ✔ Opción B: Ejecutar manualmente con Python
+
+```bash
+python3 -m streamlit run dashboard.py
+```
+
+Luego abre en tu navegador:
+
+```
+http://localhost:8501
+```
+
+---
+
+## Cómo usar
+
+### Añadir ítems
+
+1. Ingresa nombre del producto, fecha y precio.
+2. (Opcional) Agrega precio y fecha de venta.
+3. Presiona **“Añadir”**.
+
+La ganancia se calcula automáticamente.
+
+---
+
+### Editar datos
+
+* Edita cualquier celda desde la tabla interactiva.
+* Los cambios se guardan en el estado interno.
+
+---
+
+### Ver gráficos
+
+* Se generan automáticamente:
+
+  * Resumen general
+  * Ganancia/Pérdida por producto
+  * Comparación precio compra vs venta
+
+---
 
 ## Estructura del Proyecto
 
 ```
 dashboard_sales/
-├── dashboard.py          # Aplicación principal de Streamlit
-├── data.csv              # Archivo CSV con los datos (se crea automáticamente)
-├── requirements.txt      # Dependencias del proyecto
-└── README.md            # Este archivo
+├── dashboard.py             # Aplicación principal
+├── data.csv                 # Datos (se crea automáticamente)
+├── run_dashboard.command    # Launcher para macOS
+├── requirements.txt         # Dependencias
+└── README.md                # Este archivo
 ```
-
-## Formato de Datos
-
-El archivo `data.csv` contiene las siguientes columnas:
-- `item`: Nombre del producto
-- `fecha_compra`: Fecha de compra (formato: YYYY-MM-DD)
-- `precio_compra`: Precio de compra
-- `fecha_venta`: Fecha de venta (opcional, formato: YYYY-MM-DD)
-- `precio_venta`: Precio de venta (opcional)
-- `ganancia`: Ganancia calculada automáticamente (precio_venta - precio_compra)
-
-## Contribuciones
-
-Las contribuciones son bienvenidas. Si tienes sugerencias o encuentras algún problema, por favor abre un issue o envía un pull request. Este proyecto fue creado para uso personal principalmente porque necesitaba algo simple y rápido para controlar las finanzas de un negocio
 
 ---
 
-Desarrollado usando Streamlit para mayor facilidad
+## Formato del archivo data.csv
 
+| COLUMNA       | DESCRIPCIÓN                  |
+| ------------- | ---------------------------- |
+| item          | Nombre del producto          |
+| fecha_compra  | Fecha de compra (YYYY-MM-DD) |
+| precio_compra | Precio de compra             |
+| fecha_venta   | Fecha de venta (opcional)    |
+| precio_venta  | Precio de venta (opcional)   |
+| ganancia      | precio_venta - precio_compra |
+
+---
+
+## 🆕 Últimos cambios
+
+* Eliminado sistema .exe / .app (no necesario en macOS).
+* Añadido **run_dashboard.command** para ejecución rápida.
+* Captura correcta del entorno virtual para evitar errores al ejecutar.
+* Mejoras en la tabla editable y manejo de fechas.
+* Ajustes visuales en gráficos.
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas.
+Puedes abrir **issues** o **pull requests** con mejoras o sugerencias.
+
+---
+
+## 🧑‍💻 Desarrollado con Streamlit
+
+Sencillo, rápido y extensible.
+
+---
+
+Si quieres, también te preparo una versión del README con iconos, emojis o estilo más formal/profesional.
