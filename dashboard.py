@@ -1,4 +1,5 @@
 import datetime
+from _plotly_utils.colors.plotlyjs import Rainbow
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -11,7 +12,7 @@ st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide", page
 # -----------------------------
 # Cargar archivo desde sesión o subida
 # -----------------------------
-st.sidebar.header("Datos")
+st.sidebar.header("Gestión de Datos", divider="rainbow")
 
 uploaded_file = st.sidebar.file_uploader("Subir archivo data.csv", type=["csv"], help="Recuerda pulsar en la X luego de añadir el archivo para que la table sea editable")
 timestamp = datetime.now().strftime("%d/%m/%Y_%H:%M:%S")
@@ -44,7 +45,7 @@ st.title("Dashboard de Compras y Ventas")
 # Formulario para Añadir nuevo ítem
 # ------------------------------------
 with st.container(border=True):
-    st.subheader("Añadir nuevo ítem")
+    st.subheader("Añadir nuevo ítem", divider="rainbow")
 
     col1, col2 = st.columns(2, border=True)
 
@@ -60,7 +61,7 @@ with st.container(border=True):
     col2.number_input("Ganancia", value=ganancia)
 
     # Botón de añadir
-    if st.button("Añadir"):
+    if st.button("Añadir", width="stretch"):
         new_row = {
             "item": item,
             "fecha_compra": str(fecha_compra),
@@ -79,7 +80,7 @@ with st.container(border=True):
 # ------------------------------------
 # Tabla editable
 # ------------------------------------
-st.subheader("Tabla de datos")
+st.subheader("Tabla de datos", divider="rainbow")
 
 # Convertir fechas
 df["fecha_compra"] = pd.to_datetime(df["fecha_compra"], errors="coerce")
@@ -97,7 +98,7 @@ edited_df = st.data_editor(df, num_rows="dynamic")
 # -----------------
 # Vaciar la tabla
 # ------------------
-b1,b2=st.columns(2, border=True)
+b1,b2=st.columns(2)
 with b1:
     st.download_button(
         "Descargar .csv",
@@ -117,7 +118,6 @@ with b2:
         st.success("Tabla vaciada correctamente")
         st.rerun()
 
-
 # ------------------------------------
 # Totales estadísticos
 # ------------------------------------
@@ -125,21 +125,27 @@ total_gastado = df["precio_compra"].sum()
 total_vendido = pd.to_numeric(df["precio_venta"], errors="coerce").sum()
 total_beneficio = df["ganancia"].astype(float).sum()
 
-
+color = "green" if total_beneficio > 0 else "red"
+st.sidebar.write("---")
+show_ganancia=st.sidebar.title(f":{color}[Ganancia]")
+show_ganancia=st.sidebar.subheader(
+    f"**:{color}[{total_beneficio} CUP]**",
+    divider="rainbow"
+    )
 
 # ------------------------------------
 # Gráfico grande resumen
 # ------------------------------------
-st.subheader("Resumen general")
-
-resumen_df = pd.DataFrame({
-    "Categoría": ["Gastado", "Ingresos por ventas", "Beneficio total"],
-    "Cantidad (CUP)": [total_gastado, total_vendido, total_beneficio]
-})
-
 if len(df) > 0:
 
     with st.container(border=True):
+        st.subheader("Resumen general", divider="rainbow")
+
+        resumen_df = pd.DataFrame({
+            "Categoría": ["Gastado", "Ingresos por ventas", "Beneficio total"],
+            "Cantidad (CUP)": [total_gastado, total_vendido, total_beneficio]
+        })
+
         fig_resumen_bar = px.bar(
             resumen_df,
             x="Categoría",
@@ -201,14 +207,14 @@ if len(df) > 0:
             font=dict(size=14)
         )
 
-        st.subheader("Ganancias / Pérdidas Mensuales")
+        st.subheader("Ganancias / Pérdidas Mensuales", divider="rainbow")
         st.plotly_chart(fig_mes, width="stretch")
 
 
     # -------------------------------------
     # Gráficos individuales
     # -------------------------------------
-    st.subheader("Gráficos por Item")
+    st.subheader("Gráficos por Item", divider="rainbow")
 
     colg1, colg2 = st.columns(2, border=True)
 
