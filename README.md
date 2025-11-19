@@ -36,10 +36,10 @@ Permite llevar un registro detallado de transacciones, calcular ganancias/pérdi
 
 ### ✔ Ejecución local rápida
 
-* Incluye un launcher local:
+* Incluye launchers locales para diferentes sistemas operativos:
 
-  **`run_dashboard.command`** (macOS)
-  que abre la app con doble clic usando el entorno virtual. (Cambia el path en el archivo para seleccionar el tuyo propio)
+  **Windows:** `launch_app.bat` - Ejecuta la app con doble clic
+  **macOS:** `run_dashboard.command` - Ejecuta la app con doble clic (cambia el path en el archivo para seleccionar el tuyo propio)
 
 ---
 
@@ -57,7 +57,8 @@ Permite llevar un registro detallado de transacciones, calcular ganancias/pérdi
 * **Python 3.11 o superior**
 * Dependencias listadas en `requirements.txt`
 
-Si usas el archivo **run_dashboard.command**, el entorno virtual se encarga del resto.
+**Windows:** Si usas el archivo **install.bat**, la instalación se realiza automáticamente.  
+**macOS:** Si usas el archivo **run_dashboard.command**, el entorno virtual se encarga del resto.
 
 ---
 
@@ -72,18 +73,43 @@ cd dashboard_sales
 
 ---
 
-### 2. Crear un entorno virtual (recomendado)
+### 2. Instalación en Windows — Recomendado
+
+**Opción A: Instalación automática (más fácil)**
+
+Haz doble clic en:
+
+```
+install.bat
+```
+
+Este archivo:
+
+* Verifica que Python esté instalado
+* Instala automáticamente todas las dependencias necesarias
+* Configura el entorno para ejecutar la aplicación
+
+**Opción B: Instalación manual**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate    # En Windows: venv\Scripts\activate
+# Crear entorno virtual (opcional pero recomendado)
+python -m venv venv
+venv\Scripts\activate
+
+# Instalar dependencias
+pip install -r requirements.txt
 ```
 
 ---
 
-### 3. Instalar dependencias
+### 3. Instalación en macOS/Linux
 
 ```bash
+# Crear entorno virtual
+python3 -m venv venv
+source venv/bin/activate
+
+# Instalar dependencias
 pip install -r requirements.txt
 ```
 
@@ -91,7 +117,42 @@ pip install -r requirements.txt
 
 ## Ejecución
 
-### ✔ Opción A: Usar el launcher local (macOS) — Recomendado
+### ✔ Windows — Opción A: Launcher automático (Recomendado)
+
+Haz doble clic en:
+
+```
+launch_app.bat
+```
+
+Este archivo:
+
+* Verifica que los archivos necesarios estén presentes
+* Ejecuta Streamlit automáticamente
+* Abre la app en tu navegador en `http://localhost:8501`
+
+**Nota:** Para cerrar la aplicación, presiona `Ctrl+C` en la ventana de comandos.
+
+---
+
+### ✔ Windows — Opción B: Modo Administrador (Solución de problemas)
+
+Si tienes problemas con la ejecución normal, haz doble clic en:
+
+```
+admin_setings.bat
+```
+
+Este archivo:
+
+* Limpia el puerto 8501 si está ocupado
+* Verifica que todos los archivos estén presentes
+* Reinstala dependencias si faltan
+* Inicia la aplicación con permisos elevados
+
+---
+
+### ✔ macOS — Opción A: Launcher automático (Recomendado)
 
 Haz doble clic en:
 
@@ -101,14 +162,22 @@ run_dashboard.command
 
 Este archivo:
 
-* activa automáticamente el entorno virtual,
-* ejecuta Streamlit,
-* y abre la app en tu navegador.
+* Activa automáticamente el entorno virtual
+* Ejecuta Streamlit
+* Abre la app en tu navegador
+
+**Nota:** Puede que necesites cambiar el path del entorno virtual en el archivo según tu configuración.
 
 ---
 
-### ✔ Opción B: Ejecutar manualmente con Python
+### ✔ Opción C: Ejecutar manualmente con Python
 
+**Windows:**
+```bash
+streamlit run dashboard.py
+```
+
+**macOS/Linux:**
 ```bash
 python3 -m streamlit run dashboard.py
 ```
@@ -156,6 +225,9 @@ La ganancia se calcula automáticamente.
 dashboard_sales/
 ├── dashboard.py             # Aplicación principal
 ├── data.csv                 # Datos (se crea automáticamente)
+├── install.bat              # Instalador automático para Windows
+├── launch_app.bat           # Launcher para Windows
+├── admin_setings.bat        # Modo administrador/solución de problemas (Windows)
 ├── run_dashboard.command    # Launcher para macOS
 ├── requirements.txt         # Dependencias
 └── README.md                # Este archivo
@@ -178,11 +250,17 @@ dashboard_sales/
 
 ## 🆕 Últimos cambios
 
-* Eliminado sistema .exe / .app (no necesario en macOS).
-* Añadido **run_dashboard.command** para ejecución rápida.
-* Captura correcta del entorno virtual para evitar errores al ejecutar.
-* Mejoras en la tabla editable y manejo de fechas.
-* Ajustes visuales en gráficos.
+### Windows
+* ✅ Añadido **install.bat** - Instalador automático que verifica Python e instala dependencias
+* ✅ Añadido **launch_app.bat** - Launcher con verificación de archivos y ejecución automática
+* ✅ Añadido **admin_setings.bat** - Modo administrador para solución de problemas (libera puerto, reinstala dependencias)
+* ✅ Soporte completo para Windows con scripts batch optimizados
+* ✅ Interfaz de consola mejorada con caracteres UTF-8
+
+### General
+* ✅ Mejoras en la tabla editable y manejo de fechas
+* ✅ Ajustes visuales en gráficos
+* ✅ Mejor manejo de errores y mensajes informativos
 
 ---
 
