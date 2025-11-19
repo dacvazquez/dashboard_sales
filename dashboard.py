@@ -1,10 +1,10 @@
 import datetime
-import time
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import os
+import plotly.graph_objects as go
+import plotly.express as px
 
 st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide", page_icon="icon.png")
 
@@ -43,37 +43,38 @@ st.title("Dashboard de Compras y Ventas")
 # ------------------------------------
 # Formulario para Añadir nuevo ítem
 # ------------------------------------
-st.subheader("Añadir nuevo ítem")
+with st.container(border=True):
+    st.subheader("Añadir nuevo ítem")
 
-col1, col2 = st.columns(2, border=True)
+    col1, col2 = st.columns(2, border=True)
 
-# Inputs dinámicos
-item = col1.text_input("Item")
-precio_compra = col1.number_input("Precio de compra", min_value=0.0, value=0.0)
-fecha_compra = col1.date_input("Fecha de compra")
-precio_venta = col2.number_input("Precio de venta (opcional)", min_value=0.0)
-fecha_venta = col2.date_input("Fecha de venta (opcional)", value=None)
+    # Inputs dinámicos
+    item = col1.text_input("Item")
+    precio_compra = col1.number_input("Precio de compra", min_value=0.0, value=0.0)
+    fecha_compra = col1.date_input("Fecha de compra")
+    precio_venta = col2.number_input("Precio de venta (opcional)", min_value=0.0)
+    fecha_venta = col2.date_input("Fecha de venta (opcional)", value=None)
 
-# ✔ Ganancia dinámica
-ganancia = precio_venta - precio_compra
-col2.number_input("Ganancia", value=ganancia)
+    # Ganancia dinámica
+    ganancia = precio_venta - precio_compra
+    col2.number_input("Ganancia", value=ganancia)
 
-# Botón de añadir
-if st.button("Añadir"):
-    new_row = {
-        "item": item,
-        "fecha_compra": str(fecha_compra),
-        "precio_compra": precio_compra,
-        "precio_venta": precio_venta if precio_venta > 0 else None,
-        "fecha_venta": str(fecha_venta) if precio_venta > 0 else None,
-        "ganancia": ganancia
-    }
+    # Botón de añadir
+    if st.button("Añadir"):
+        new_row = {
+            "item": item,
+            "fecha_compra": str(fecha_compra),
+            "precio_compra": precio_compra,
+            "precio_venta": precio_venta if precio_venta > 0 else None,
+            "fecha_venta": str(fecha_venta) if precio_venta > 0 else None,
+            "ganancia": ganancia
+        }
 
-    df.loc[len(df)] = new_row   
-    df = df.reset_index(drop=True)
-    st.session_state["df"] = df
+        df.loc[len(df)] = new_row   
+        df = df.reset_index(drop=True)
+        st.session_state["df"] = df
 
-    st.success("Ítem añadido correctamente")
+        st.success("Ítem añadido correctamente")
 
 # ------------------------------------
 # Tabla editable
@@ -96,7 +97,6 @@ edited_df = st.data_editor(df, num_rows="dynamic")
 # -----------------
 # Vaciar la tabla
 # ------------------
-
 b1,b2=st.columns(2, border=True)
 with b1:
     st.download_button(
@@ -140,28 +140,82 @@ resumen_df = pd.DataFrame({
 if len(df) > 0:
 
     with st.container(border=True):
-        fig_resumen = px.bar(
+        fig_resumen_bar = px.bar(
             resumen_df,
             x="Categoría",
             y="Cantidad (CUP)",
             text="Cantidad (CUP)"
         )
 
-        fig_resumen.update_traces(marker_color=["#e74c3c", "#3498db", "#2ecc71"])
-        fig_resumen.update_layout(height=450)
+        fig_resumen_bar.update_traces(marker_color=["#e74c3c", "#2ecc71", "#3498db"])
+        fig_resumen_bar.update_layout(height=450)
 
-        st.plotly_chart(fig_resumen, width="stretch")
+        st.plotly_chart(fig_resumen_bar, width="stretch")
+
+    with st.container(border=True):
+        # ============================
+        # GANANCIAS Y PÉRDIDAS POR MES
+        # ============================
+
+        df_month = df.copy()
+
+        df_month["precio_compra"] = pd.to_numeric(df_month["precio_compra"], errors="coerce")
+        df_month["precio_venta"] = pd.to_numeric(df_month["precio_venta"], errors="coerce")
+        df_month["ganancia"] = pd.to_numeric(df_month["ganancia"], errors="coerce")
+
+        # Caso 1: items vendidos → usar fecha_venta
+        df_month["mes"] = df_month["fecha_venta"].dt.to_period("M").astype(str)
+
+        # Caso 2: items NO vendidos → usar fecha_compra y contar pérdida temporal
+        mask_no_sale = df_month["precio_venta"].isna()
+
+        df_month.loc[mask_no_sale, "ganancia"] = -df_month.loc[mask_no_sale, "precio_compra"]
+        df_month.loc[mask_no_sale, "mes"] = (
+            df_month.loc[mask_no_sale, "fecha_compra"]
+            .dt.to_period("M")
+            .astype(str)
+        )
+
+        # Agrupar por mes
+        df_month_summary = df_month.groupby("mes", as_index=False)["ganancia"].sum()
+
+        # Clasificar
+        df_month_summary["Resultado"] = df_month_summary["ganancia"].apply(
+            lambda x: "Ganancia" if x >= 0 else "Pérdida"
+        )
+
+        # Gráfico
+        fig_mes = px.bar(
+            df_month_summary,
+            x="mes",
+            y="ganancia",
+            color="Resultado",
+            #title="Ganancias y Pérdidas por Mes",
+            color_discrete_map={"Ganancia": "green", "Pérdida": "red"},
+            text="ganancia"
+        )
+
+        fig_mes.update_layout(
+            xaxis_title="Mes",
+            yaxis_title="Ganancia / Pérdida (CUP)",
+            font=dict(size=14)
+        )
+
+        st.subheader("Ganancias / Pérdidas Mensuales")
+        st.plotly_chart(fig_mes, width="stretch")
 
 
-    # ------------------------------------
+    # -------------------------------------
     # Gráficos individuales
-    # ------------------------------------
+    # -------------------------------------
     st.subheader("Gráficos por Item")
 
     colg1, colg2 = st.columns(2, border=True)
 
-# Gráfico de ganancias con colores (verde y rojo)
-if len(df) > 0:
+    # --------------------------------------
+    # Gráfico de ganancias
+    # --------------------------------------
+
     # Crear un DF temporal para no alterar el original
     df_copy=df.copy()
     df_copy["Resultado"] = df_copy["ganancia"].astype(float).apply(
@@ -223,12 +277,12 @@ if len(df) > 0:
     
     fig_cv.update_traces(
         selector=dict(name="Precio Compra"),
-        marker=dict(symbol="hexagon-open", size=10)
+        marker=dict(symbol="triangle-down", size=12)
     )
 
     fig_cv.update_traces(
         selector=dict(name="Precio Venta"),
-        marker=dict(symbol="hexagon", size=14)
+        marker=dict(symbol="triangle-up", size=12)
     )
 
 
