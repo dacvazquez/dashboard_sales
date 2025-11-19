@@ -1,4 +1,6 @@
 streamlit 
 plotly
 pandas
+openpyxl
 numpy
+#pyinstaller  Lo use para el ejecutable en windows
