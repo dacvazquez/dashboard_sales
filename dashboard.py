@@ -82,20 +82,32 @@ with st.container(border=True):
 # ------------------------------------
 st.subheader("Tabla de Datos", divider="rainbow")
 
-# Convertir fechas
 df["fecha_compra"] = pd.to_datetime(df["fecha_compra"], errors="coerce")
 df["fecha_venta"] = pd.to_datetime(df["fecha_venta"], errors="coerce")
 
-# Botón ordenar
-if st.button("Ordenar tabla por fecha de compra"):
-    df = df.sort_values("fecha_compra", ascending=True)
-    st.session_state["df"] = df
-    st.success("Tabla ordenada por fecha de compra")
+# ======================================
+# Detectar items sin vender por +30 días
+# ======================================
 
-# Editor
-edited_df = st.data_editor(df, num_rows="dynamic")
+today = pd.Timestamp.today()
+df["dias_desde_compra"] = (today - df["fecha_compra"]).dt.days
+df["stuck"] = (df["fecha_venta"].isna()) & (df["dias_desde_compra"] >= 30)
 
-# Actualizar automáticamente toda la app
+# Editor con resaltado
+edited_df = st.data_editor(
+    df,
+    num_rows="dynamic",
+    column_config={
+        "stuck": st.column_config.CheckboxColumn(
+            "Item estancado (+30 días sin vender)",
+            help="Este producto lleva más de un mes guardado sin venderse.",
+            disabled=True
+        )
+    },
+    hide_index=True,
+)
+
+# Actualizar sesión
 st.session_state["df"] = edited_df
 df = edited_df
 
@@ -148,11 +160,43 @@ show_ganancia=st.sidebar.subheader(
     divider="rainbow"
     )
 
-# ------------------------------------
-# Gráfico grande resumen
-# ------------------------------------
+# Si el df tiene datos: Generar los gráficos
 if len(df) > 0:
 
+    # ====================================
+    # Gráfico Productos Estancados
+    # ====================================
+    with st.container(border=True):
+        st.subheader("Productos Estancados (más de 30 días sin vender)", divider="rainbow")
+
+        df_stuck = df[df["stuck"] == True]
+
+        if len(df_stuck) == 0:
+            st.success("No tienes productos estancados. ¡Buen trabajo!")
+        else:
+            df_stuck["dias"] = df_stuck["dias_desde_compra"]
+
+            fig_stuck = px.bar(
+                df_stuck,
+                x="item",
+                y="dias",
+                text="dias",
+                color="dias",
+                color_continuous_scale="Reds",
+            )
+
+            fig_stuck.update_layout(
+                xaxis_title="Item",
+                yaxis_title="Días sin vender",
+                height=400
+            )
+
+            st.plotly_chart(fig_stuck, use_container_width=True)
+
+
+    # ====================================
+    # Gráfico Resumen General
+    # ====================================
     with st.container(border=True):
         st.subheader("Resumen General", divider="rainbow")
 
@@ -165,7 +209,7 @@ if len(df) > 0:
                 "Inversión Actual",
                 "Ingresos Totales",
                 "Ganancia (Neta) en items vendidos",
-                "Beneficio Total"
+                "Beneficio/Pérdida Total"
             ],
             "Cantidad (CUP)": [
                 total_gastado,
@@ -183,11 +227,11 @@ if len(df) > 0:
             text="Cantidad (CUP)"
         )
 
-    fig_resumen_bar.update_traces(marker_color=["#e74c3c","#9b59b6", "#2ecc71", "#e67e22", "#3498db"])
-    fig_resumen_bar.update_layout(height=450)
+        fig_resumen_bar.update_traces(marker_color=["#e74c3c","#9b59b6", "#2ecc71", "#e67e22", "#3498db"])
+        fig_resumen_bar.update_layout(height=450)
+        fig_resumen_bar.update_traces(marker=dict(line=dict(color="white", width=1)))
 
-    st.plotly_chart(fig_resumen_bar, width="stretch")
-
+        st.plotly_chart(fig_resumen_bar, width="stretch")
 
     with st.container(border=True):
         # ============================
@@ -237,6 +281,7 @@ if len(df) > 0:
             yaxis_title="Ganancia / Pérdida (CUP)",
             font=dict(size=14)
         )
+        fig_mes.update_traces(marker=dict(line=dict(color="white", width=1)))
 
         st.subheader(":green[Ganancias] / :red[Pérdidas] Mensuales", divider="rainbow")
         st.plotly_chart(fig_mes, width="stretch")
@@ -245,9 +290,71 @@ if len(df) > 0:
     # -------------------------------------
     # Gráficos individuales
     # -------------------------------------
-    
     with st.container(border=True):
-        st.subheader("Gráficos por Item", divider="rainbow")
+        st.subheader(f"Ciclo de Ventas por Producto (Duración entre :red[Compra] y :green[Venta])", divider="rainbow")
+
+        # --- PREPARAR DATAFRAME ---
+        # Asegurar formato de fecha
+        df["fecha_compra"] = pd.to_datetime(df["fecha_compra"])
+        df["fecha_venta"] = pd.to_datetime(df["fecha_venta"], errors="coerce")
+
+        # Duración en días
+        df["dias"] = (df["fecha_venta"].fillna(pd.Timestamp.today()) - df["fecha_compra"]).dt.days
+
+        # Beneficio solo para vendidos
+        df["temp_ganancia"] = df["ganancia"].copy()
+        df["temp_ganancia"] = df["fecha_venta"] - df["fecha_compra"]
+        df.loc[df["fecha_venta"] == 0, "temp_ganancia"] = 0
+
+        # Estado del item
+        df["estado"] = df["fecha_venta"].apply(lambda x: "Vendido" if pd.notna(x) else "En inventario")
+
+        # --- GRÁFICO GANTT ---
+        fig_gantt = px.timeline(
+            df,
+            x_start="fecha_compra",
+            x_end=df["fecha_venta"].fillna(pd.Timestamp.today()),
+            y="item",
+            color="estado",
+            text="dias",
+            hover_data={
+                "fecha_compra": True,
+                "fecha_venta": True,
+                "precio_compra": True,
+                "precio_venta": True,
+                "temp_ganancia": True,
+                "dias": True,
+                "estado": True,
+            },
+            color_discrete_map={
+                "Vendido": "#2ecc71",
+                "En inventario": "#e74c3c",
+            },
+            labels={
+                "fecha_compra": "Fecha de Compra",
+                "fecha_venta": "Fecha de Venta",
+                "precio_compra": "Precio de Compra",
+                "precio_venta": "Precio de Venta",
+                "temp_ganancia": "Ganancia",
+                "dias": "Duración (días)",
+                "estado": "Estado",
+                "item": "Producto"
+            }
+        )
+
+        fig_gantt.update_yaxes(autorange="reversed")  # estilo Gantt
+        fig_gantt.update_traces(marker=dict(line=dict(color="white", width=1)))
+        fig_gantt.update_layout(
+            title="Historial de Compra/Venta",
+            height=600,
+            xaxis_title="Fecha",
+            yaxis_title="Items",
+        )
+
+        st.plotly_chart(fig_gantt, use_container_width=True)
+
+    with st.container(border=True):
+        st.subheader("Gráficos por Ítem", divider="rainbow")
 
         colg1, colg2 = st.columns(2, border=True)
 
@@ -271,11 +378,11 @@ if len(df) > 0:
             category_orders={"item": df_copy["item"].tolist()} # para que mantengan el orden de la tabla
         )
         fig_ganancia.update_layout(
-        xaxis_title="Item",
-        yaxis_title="Ganancia/Pérdida (CUP)",
-        font=dict(size=14)
+            xaxis_title="Item",
+            yaxis_title="Ganancia/Pérdida (CUP)",
+            font=dict(size=14)
         )
-        
+        fig_ganancia.update_traces(marker=dict(line=dict(color="white", width=1)))
         colg1.plotly_chart(fig_ganancia, width="stretch")
 
         # Compra vs venta - convertir a formato long-form
@@ -313,7 +420,7 @@ if len(df) > 0:
             line=dict(width=3),
             mode="markers+text"
         )
-        
+        fig_cv.update_traces(marker=dict(line=dict(color="white", width=1)))
         fig_cv.update_traces(
             selector=dict(name="Precio Compra"),
             marker=dict(symbol="triangle-down", size=12)
@@ -355,7 +462,7 @@ if len(df) > 0:
                 yaxis_title="Días",
                 xaxis_title=""
             )
-
+            fig_promedio.update_traces(marker=dict(line=dict(color="white", width=1)))
             st.plotly_chart(fig_promedio, width="stretch")
 
 else:
