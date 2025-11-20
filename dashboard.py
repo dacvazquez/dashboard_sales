@@ -12,7 +12,7 @@ st.set_page_config(page_title="Dashboard de Compras/Ventas", layout="wide", page
 # -----------------------------
 # Cargar archivo desde sesión o subida
 # -----------------------------
-st.sidebar.header(f":rainbow[Gestión de Datos]", divider="rainbow")
+st.sidebar.header("Gestión de Datos", divider="rainbow")
 
 uploaded_file = st.sidebar.file_uploader("Subir archivo data.csv", type=["csv"], help="Recuerda pulsar en la X luego de añadir el archivo para que la table sea editable")
 timestamp = datetime.now().strftime("%d/%m/%Y_%H:%M:%S")
@@ -39,13 +39,13 @@ st.sidebar.download_button(
 )
 
 
-st.title(":rainbow[Dashboard de Compras y Ventas]")
+st.title("Dashboard de Compras y Ventas")
 
 # ------------------------------------
 # Formulario para Añadir nuevo ítem
 # ------------------------------------
 with st.container(border=True):
-    st.subheader(":rainbow[Añadir nuevo ítem]", divider="rainbow")
+    st.subheader("Añadir Artículo", divider="rainbow")
 
     col1, col2 = st.columns(2, border=True)
 
@@ -80,7 +80,7 @@ with st.container(border=True):
 # ------------------------------------
 # Tabla editable
 # ------------------------------------
-st.subheader(":rainbow[Tabla de datos]", divider="rainbow")
+st.subheader("Tabla de Datos", divider="rainbow")
 
 # Convertir fechas
 df["fecha_compra"] = pd.to_datetime(df["fecha_compra"], errors="coerce")
@@ -94,6 +94,10 @@ if st.button("Ordenar tabla por fecha de compra"):
 
 # Editor
 edited_df = st.data_editor(df, num_rows="dynamic")
+
+# Actualizar automáticamente toda la app
+st.session_state["df"] = edited_df
+df = edited_df
 
 # -----------------
 # Vaciar la tabla
@@ -125,6 +129,17 @@ total_gastado = df["precio_compra"].sum()
 total_vendido = pd.to_numeric(df["precio_venta"], errors="coerce").sum()
 total_beneficio = df["ganancia"].astype(float).sum()
 
+# Inversión actual = solo ítems NO vendidos
+df_no_vendidos = df[df["fecha_venta"].isna()]
+inversion_actual = df_no_vendidos["precio_compra"].sum()
+
+ganancia_items_vendidos = df[df["fecha_venta"].notna()]["ganancia"].sum()
+
+# Por cada item vendido: dias para vender= fecha venta - fecha compra
+df_vendidos = df[df["fecha_venta"].notna()].copy()
+df_vendidos["dias_para_vender"] = (df_vendidos["fecha_venta"] - df_vendidos["fecha_compra"]).dt.days
+promedio_dias = df_vendidos["dias_para_vender"].mean()
+
 color = "green" if total_beneficio >= 0 else "red"
 st.sidebar.write("---")
 show_ganancia=st.sidebar.title(f":{color}[Ganancia]")
@@ -139,11 +154,26 @@ show_ganancia=st.sidebar.subheader(
 if len(df) > 0:
 
     with st.container(border=True):
-        st.subheader(":rainbow[Resumen general]", divider="rainbow")
+        st.subheader("Resumen General", divider="rainbow")
+
+        # Calcular ganancias de items vendidos individualmente
+        ganancia_items_vendidos = df[df["fecha_venta"].notna()]["ganancia"].sum()
 
         resumen_df = pd.DataFrame({
-            "Categoría": ["Gastado", "Ingresos por ventas", "Beneficio total"],
-            "Cantidad (CUP)": [total_gastado, total_vendido, total_beneficio]
+            "Categoría": [
+                "Total Gastado",
+                "Inversión Actual",
+                "Ingresos Totales",
+                "Ganancia (Neta) en items vendidos",
+                "Beneficio Total"
+            ],
+            "Cantidad (CUP)": [
+                total_gastado,
+                inversion_actual,
+                total_vendido,
+                ganancia_items_vendidos,
+                total_beneficio
+            ]
         })
 
         fig_resumen_bar = px.bar(
@@ -153,10 +183,11 @@ if len(df) > 0:
             text="Cantidad (CUP)"
         )
 
-        fig_resumen_bar.update_traces(marker_color=["#e74c3c", "#2ecc71", "#3498db"])
-        fig_resumen_bar.update_layout(height=450)
+    fig_resumen_bar.update_traces(marker_color=["#e74c3c","#9b59b6", "#2ecc71", "#e67e22", "#3498db"])
+    fig_resumen_bar.update_layout(height=450)
 
-        st.plotly_chart(fig_resumen_bar, width="stretch")
+    st.plotly_chart(fig_resumen_bar, width="stretch")
+
 
     with st.container(border=True):
         # ============================
@@ -207,98 +238,125 @@ if len(df) > 0:
             font=dict(size=14)
         )
 
-        st.subheader(":rainbow[Ganancias / Pérdidas Mensuales]", divider="rainbow")
+        st.subheader(":green[Ganancias] / :red[Pérdidas] Mensuales", divider="rainbow")
         st.plotly_chart(fig_mes, width="stretch")
 
 
     # -------------------------------------
     # Gráficos individuales
     # -------------------------------------
-    st.subheader(":rainbow[Gráficos por Item]", divider="rainbow")
-
-    colg1, colg2 = st.columns(2, border=True)
-
-    # --------------------------------------
-    # Gráfico de ganancias
-    # --------------------------------------
-
-    # Crear un DF temporal para no alterar el original
-    df_copy=df.copy()
-    df_copy["Resultado"] = df_copy["ganancia"].astype(float).apply(
-        lambda x: "Ganancia" if x > 0 else "Pérdida"
-    )
-
-    fig_ganancia = px.bar(
-        df_copy,
-        x="item",
-        y="ganancia",
-        color="Resultado",
-        color_discrete_map={"Ganancia": "green", "Pérdida": "red"},
-        title="Ganancia / Pérdida por Item",
-        category_orders={"item": df_copy["item"].tolist()} # para que mantengan el orden de la tabla
-    )
-    fig_ganancia.update_layout(
-    xaxis_title="Item",
-    yaxis_title="Ganancia/Pérdida (CUP)",
-    font=dict(size=14)
-    )
     
-    colg1.plotly_chart(fig_ganancia, width="stretch")
+    with st.container(border=True):
+        st.subheader("Gráficos por Item", divider="rainbow")
 
-    # Compra vs venta - convertir a formato long-form
-    # Preparar datos: asegurar que ambas columnas sean numéricas
-    df_cv = df.copy()
-    df_cv["precio_compra"] = pd.to_numeric(df_cv["precio_compra"], errors="coerce")
-    df_cv["precio_venta"] = pd.to_numeric(df_cv["precio_venta"], errors="coerce")
+        colg1, colg2 = st.columns(2, border=True)
 
-    
-    # Convertir a formato long-form para Plotly
-    df_melted = pd.melt(
-        df_cv,
-        id_vars=["item"],
-        value_vars=["precio_compra", "precio_venta"],
-        var_name="Tipo",
-        value_name="Precio"
-    )
-    
-    # Renombrar
-    df_melted["Tipo"] = df_melted["Tipo"].replace({
-        "precio_compra": "Precio Compra",
-        "precio_venta": "Precio Venta"
-    })
-    
-    fig_cv = px.line(
-        df_melted,
-        x="item",
-        y="Precio",
-        color="Tipo",
-        title="Precio Compra vs Venta",
-        color_discrete_map={"Precio Compra": "red", "Precio Venta": "green"},
-    )
+        # --------------------------------------
+        # Gráfico de ganancias
+        # --------------------------------------
 
-    fig_cv.update_traces(
-        line=dict(width=3),
-        mode="markers+text"
-    )
-    
-    fig_cv.update_traces(
-        selector=dict(name="Precio Compra"),
-        marker=dict(symbol="triangle-down", size=12)
-    )
+        # Crear un DF temporal para no alterar el original
+        df_copy=df.copy()
+        df_copy["Resultado"] = df_copy["ganancia"].astype(float).apply(
+            lambda x: "Ganancia" if x > 0 else "Pérdida"
+        )
 
-    fig_cv.update_traces(
-        selector=dict(name="Precio Venta"),
-        marker=dict(symbol="triangle-up", size=12)
-    )
-
-
-    fig_cv.update_layout(
+        fig_ganancia = px.bar(
+            df_copy,
+            x="item",
+            y="ganancia",
+            color="Resultado",
+            color_discrete_map={"Ganancia": "green", "Pérdida": "red"},
+            title="Ganancia / Pérdida por Item",
+            category_orders={"item": df_copy["item"].tolist()} # para que mantengan el orden de la tabla
+        )
+        fig_ganancia.update_layout(
         xaxis_title="Item",
-        yaxis_title="Precio (CUP)",
-        font=dict(size=14)  
-    )
+        yaxis_title="Ganancia/Pérdida (CUP)",
+        font=dict(size=14)
+        )
+        
+        colg1.plotly_chart(fig_ganancia, width="stretch")
 
-    colg2.plotly_chart(fig_cv, width="stretch")
+        # Compra vs venta - convertir a formato long-form
+        # Preparar datos: asegurar que ambas columnas sean numéricas
+        df_cv = df.copy()
+        df_cv["precio_compra"] = pd.to_numeric(df_cv["precio_compra"], errors="coerce")
+        df_cv["precio_venta"] = pd.to_numeric(df_cv["precio_venta"], errors="coerce")
+
+        
+        # Convertir a formato long-form para Plotly
+        df_melted = pd.melt(
+            df_cv,
+            id_vars=["item"],
+            value_vars=["precio_compra", "precio_venta"],
+            var_name="Tipo",
+            value_name="Precio"
+        )
+        
+        # Renombrar
+        df_melted["Tipo"] = df_melted["Tipo"].replace({
+            "precio_compra": "Precio Compra",
+            "precio_venta": "Precio Venta"
+        })
+        
+        fig_cv = px.line(
+            df_melted,
+            x="item",
+            y="Precio",
+            color="Tipo",
+            title="Precio Compra vs Venta",
+            color_discrete_map={"Precio Compra": "red", "Precio Venta": "green"},
+        )
+
+        fig_cv.update_traces(
+            line=dict(width=3),
+            mode="markers+text"
+        )
+        
+        fig_cv.update_traces(
+            selector=dict(name="Precio Compra"),
+            marker=dict(symbol="triangle-down", size=12)
+        )
+
+        fig_cv.update_traces(
+            selector=dict(name="Precio Venta"),
+            marker=dict(symbol="triangle-up", size=12)
+        )
+
+
+        fig_cv.update_layout(
+            xaxis_title="Item",
+            yaxis_title="Precio (CUP)",
+            font=dict(size=14)  
+        )
+
+        colg2.plotly_chart(fig_cv, width="stretch")
+
+    with st.container(border=True):
+        st.subheader("Tiempo promedio en vender un ítem", divider="rainbow")
+
+        df_vendidos = df[df["fecha_venta"].notna()].copy()
+        df_vendidos["dias_para_vender"] = (df_vendidos["fecha_venta"] - df_vendidos["fecha_compra"]).dt.days
+
+        if len(df_vendidos) == 0:
+            st.info("Todavía no has vendido suficientes ítems para calcular el promedio.")
+        else:
+            promedio_dias = df_vendidos["dias_para_vender"].mean()
+
+            fig_promedio = px.bar(
+                x=["Promedio días"],
+                y=[promedio_dias],
+                text=[f"{promedio_dias:.1f} días"]
+            )
+            fig_promedio.update_traces(marker_color="#8e44ad")
+            fig_promedio.update_layout(
+                height=300,
+                yaxis_title="Días",
+                xaxis_title=""
+            )
+
+            st.plotly_chart(fig_promedio, width="stretch")
 
 else:
     st.info("Añade datos para ver los gráficos.")
