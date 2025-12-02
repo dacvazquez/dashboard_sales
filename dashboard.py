@@ -47,8 +47,9 @@ with st.container(border=True):
 
     col1, col2 = st.columns(2, border=True)
     tipos = [
-        "Configuración/Kit", "CPU", "Fuente de alimentación",
-        "Cable", "Monitor", "Chasis", "RAM", "HDD", "SDD", "M2"
+        "Kit PC", "CPU", "GPU", "Fuente de poder",
+        "Cable", "Monitor/TV", "Chasis", "RAM", "HDD", "SDD", "M2", 
+        "Teclado", "Mouse", "Bocinas/Altavoces"
     ]
     # Inputs dinámicos
     item = col1.text_input("Item")
@@ -105,13 +106,41 @@ edited_df = st.data_editor(
             "Item estancado (+30 días sin vender)",
             help="Este producto lleva más de un mes guardado sin venderse.",
             disabled=True
+        ),
+        "ganancia": st.column_config.NumberColumn(
+            "Ganancia",
+            help="Se calcula automáticamente como: Precio Venta - Precio Compra",
+            disabled=True,
+            format="%.2f"
         )
     },
     hide_index=True,
 )
 
-# Actualizar sesión
-st.session_state["df"] = edited_df
+# Recalcular ganancia automáticamente cuando se editen precio_compra o precio_venta
+if not edited_df.empty:
+    # Convertir a numéricos para asegurar cálculos correctos
+    edited_df["precio_compra"] = pd.to_numeric(edited_df["precio_compra"], errors="coerce").fillna(0)
+    edited_df["precio_venta"] = pd.to_numeric(edited_df["precio_venta"], errors="coerce").fillna(0)
+    
+    # Recalcular ganancia: precio_venta - precio_compra
+    edited_df["ganancia"] = edited_df["precio_venta"] - edited_df["precio_compra"]
+
+# Detectar cambios y hacer rerun automático
+# Comparar el dataframe editado con el original (ignorando columnas calculadas como 'stuck' y 'dias_desde_compra')
+df_comparable = df.drop(columns=["stuck", "dias_desde_compra"], errors="ignore")
+edited_df_comparable = edited_df.drop(columns=["stuck", "dias_desde_compra"], errors="ignore")
+
+# Verificar si hay cambios comparando los dataframes
+if not df_comparable.equals(edited_df_comparable):
+    # Actualizar sesión
+    st.session_state["df"] = edited_df
+    # Hacer rerun para actualizar todos los gráficos y cálculos
+    st.rerun()
+else:
+    # Si no hay cambios, solo actualizar la referencia local
+    st.session_state["df"] = edited_df
+
 df = edited_df
 
 # -----------------
@@ -320,9 +349,10 @@ if len(df) > 0:
         df["dias"] = (df["fecha_venta"].fillna(pd.Timestamp.today()) - df["fecha_compra"]).dt.days
 
         # Beneficio solo para vendidos
-        df["temp_ganancia"] = df["ganancia"].copy()
-        df["temp_ganancia"] = df["fecha_venta"] - df["fecha_compra"]
-        df.loc[df["fecha_venta"] == 0, "temp_ganancia"] = 0
+        df_t=df.copy()
+        df_t["temp_ganancia"] = df["ganancia"].copy()
+        df_t["temp_ganancia"] = df["fecha_venta"] - df["fecha_compra"]
+        df_t.loc[df_t["fecha_venta"] == 0, "temp_ganancia"] = 0
 
         # Estado del item
         df["estado"] = df["fecha_venta"].apply(lambda x: "Vendido" if pd.notna(x) else "En inventario")
@@ -340,7 +370,6 @@ if len(df) > 0:
                 "fecha_venta": True,
                 "precio_compra": True,
                 "precio_venta": True,
-                #"temp_ganancia": True,
                 "dias": True,
                 "estado": True,
                 "ganancia": True
@@ -607,7 +636,7 @@ if len(df) > 0:
                     cat_ganancias,
                     names="tipo",
                     values="Ganancia",
-                    hole=0.3,
+                    hole=0.2,
                     title="Distribución porcentual de la ganancia por categoría"
                 )
                 fig_profit_pie.update_traces(textposition="inside", textinfo="percent+label")
